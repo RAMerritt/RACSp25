@@ -95,9 +95,9 @@ ctrl_h <- c(rep(0, length(ctrl_entry[which.min(ctrl_entry<7.25):which.min(ctrl_e
             rep(1, length(h_entry)))
 ctrl_j <- c(rep(0, length(ctrl_entry[which.min(ctrl_entry<8.75):which.min(ctrl_entry<10.5)-1])),
             rep(1, length(j_entry)))
-ctrl_k <- c(rep(0, length(ctrl_entry[which.min(ctrl_entry<11):which.min(ctrl_entry<17.5)-1])),
+ctrl_k <- c(rep(0, length(ctrl_entry[which.min(ctrl_entry<11):which.min(ctrl_entry<17.5)])),
             rep(1, length(k_entry)))
-ctrl_l <- c(rep(0, length(ctrl_entry[which.min(ctrl_entry<11.5):which.min(ctrl_entry<17.5)-1])),
+ctrl_l <- c(rep(0, length(ctrl_entry[which.min(ctrl_entry<11.5):which.min(ctrl_entry<17.5)])),
             rep(1, length(l_entry)))
 
 getps <- function(censc, censt, ctrl.time, ctrl1, ctrl2, tx.time, fu, compsn, nsim){
@@ -121,15 +121,15 @@ pe <- getps(ctrl_cens, e_cens, ctrl_arm, 1, which.min(ctrl_entry<7.25)-1,
             e, fu, ctrl_be, nsim);beep()
 pf <- getps(ctrl_cens, f_cens, ctrl_arm, 1, which.min(ctrl_entry<5.25)-1, 
             f, fu, ctrl_f, nsim);beep()
-pg <- getps(ctrl_cens, g_cens, ctrl_arm,which.min(ctrl_entry<6),which.min(ctrl_entry<8.25)-1, 
+pg <- getps(ctrl_cens, g_cens, ctrl_arm,which.min(ctrl_entry<6),which.min(ctrl_entry<8.25), 
             g, fu, ctrl_g, nsim);beep()
-ph <- getps(ctrl_cens, h_cens, ctrl_arm,ctrl1=which.min(ctrl_entry<7.25),ctrl2=which.min(ctrl_entry<10.85)-1, 
+ph <- getps(ctrl_cens, h_cens, ctrl_arm,ctrl1=which.min(ctrl_entry<7.25),ctrl2=which.min(ctrl_entry<10.85), 
             h, fu, ctrl_h, nsim);beep()
-pj <- getps(ctrl_cens, j_cens, ctrl_arm,which.min(ctrl_entry<8.75),which.min(ctrl_entry<10.5)-1, 
+pj <- getps(ctrl_cens, j_cens, ctrl_arm,which.min(ctrl_entry<8.75),which.min(ctrl_entry<10.5), 
             j, fu, ctrl_j, nsim);beep()
-pk <- getps(ctrl_cens, k_cens, ctrl_arm,which.min(ctrl_entry<11),which.min(ctrl_entry<17.5)-1, 
+pk <- getps(ctrl_cens, k_cens, ctrl_arm,which.min(ctrl_entry<11),which.min(ctrl_entry<17.5), 
             k, fu, ctrl_k, nsim);beep()
-pl <- getps(ctrl_cens, l_cens, ctrl_arm,which.min(ctrl_entry<11.5),which.min(ctrl_entry<17.5)-1, 
+pl <- getps(ctrl_cens, l_cens, ctrl_arm,which.min(ctrl_entry<11.5),which.min(ctrl_entry<17.5), 
             l, fu, ctrl_l, nsim);beep()
 
 rej_b <- ifelse(pb<.05, 1, 0)
