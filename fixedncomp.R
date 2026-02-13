@@ -1,11 +1,12 @@
 library(survival)
 library(survminer)
 
-nsim <- 5000
+nsim <- 500
 null.hz <- .3
-tx.hz <- .75*null.hz
+tx.hz <- 1*null.hz
+nevents <- 524
 halfn <- nevents*3/4
-nevents
+
 
 entry <- seq(0,6, by=1/500)
 ctrl.entry <- entry[c(seq(1,1425, by=5),seq(1426,2072, by=6),seq(2073,2644, by=2))]
@@ -122,12 +123,12 @@ fst_tx_u <- cbind(unlist(fast_null_tx_t),unlist(CI_fast_null_tx_u))
 
 slo_ct_l <- slo_ct_l[complete.cases(slo_ct_l),]
 slo_ct_u <- slo_ct_u[complete.cases(slo_ct_u),]
-fst_ct_l <- fst_ct_l[complete.cases(slo_ct_l),]
-fst_ct_u <- fst_ct_u[complete.cases(slo_ct_u),]
+fst_ct_l <- fst_ct_l[complete.cases(fst_ct_l),]
+fst_ct_u <- fst_ct_u[complete.cases(fst_ct_u),]
 slo_tx_l <- slo_tx_l[complete.cases(slo_tx_l),]
 slo_tx_u <- slo_tx_u[complete.cases(slo_tx_u),]
-fst_tx_l <- fst_tx_l[complete.cases(slo_tx_l),]
-fst_tx_u <- fst_tx_u[complete.cases(slo_tx_u),]
+fst_tx_l <- fst_tx_l[complete.cases(fst_tx_l),]
+fst_tx_u <- fst_tx_u[complete.cases(fst_tx_u),]
 
 fnct <- unique(fst_ct_l[,1])
 fntt <- unique(fst_tx_l[,1])
