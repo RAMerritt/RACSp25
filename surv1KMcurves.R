@@ -1,6 +1,7 @@
 library(plyr)
 library(survival)
 library(tidyverse)
+library(survminer)
 per_time <- 500
 pers <- 3
 null.rate <-.693
@@ -18,8 +19,8 @@ ctrl.inds <- c(seq(1, breaks[1], 3), seq(breaks[1]+1, breaks[2], 5),
                seq(breaks[2]+1, breaks[3], 3))
 t1.inds <- c(seq(2,breaks[1]+2,3), seq(breaks[1]+2, breaks[2], 5))
 t2.inds <- c(seq(3,breaks[1]+3,3), seq(breaks[1]+3, breaks[2], 5))
-t3.inds <- c(seq(breaks[1]+4, breaks[2], 5), seq(breaks[2]+4, breaks[3], 3))
-t4.inds <- c(seq(breaks[1]+5, breaks[2], 5), seq(breaks[2]+5, breaks[3], 3))
+t3.inds <- c(seq(breaks[1]+4, breaks[2], 5), seq(breaks[2]+2, breaks[3], 3))
+t4.inds <- c(seq(breaks[1]+5, breaks[2], 5), seq(breaks[2]+3, breaks[3], 3))
 
 unif.ctrl.entry <- unif.entry.tot[ctrl.inds]
 unif.entry.t1 <- unif.entry.tot[t1.inds]
@@ -28,13 +29,16 @@ unif.entry.t3 <- unif.entry.tot[t3.inds]
 unif.entry.t4 <- unif.entry.tot[t4.inds]
 
 n.ctrl <- length(ctrl.inds)
-n.t <- length(t1.inds)
+n.t1 <- length(t1.inds)
+n.t2 <- length(t2.inds)
+n.t3 <- length(t3.inds)
+n.t4 <- length(t4.inds)
 
 ctrl.events <- round_any(rexp(n.ctrl, null.rate), unit_adj)
-t1.events <- round_any(rexp(n.t, t.rate),unit_adj)
-t2.events <- round_any(rexp(n.t, t.rate),unit_adj)
-t3.events <- round_any(rexp(n.t, t.rate),unit_adj)
-t4.events <- round_any(rexp(n.t, t.rate),unit_adj)
+t1.events <- round_any(rexp(n.t1, t.rate),unit_adj)
+t2.events <- round_any(rexp(n.t2, t.rate),unit_adj)
+t3.events <- round_any(rexp(n.t3, t.rate),unit_adj)
+t4.events <- round_any(rexp(n.t4, t.rate),unit_adj)
 
 ctrl.tot <- ctrl.events+unif.ctrl.entry
 t1.tot <- t1.events+unif.entry.t1
@@ -104,25 +108,25 @@ exp.ctrl.entry <- exp.entry.tot[ctrl.inds]
 exp.entry.t1 <- exp.entry.tot[t1.inds]
 exp.entry.t2 <- exp.entry.tot[t2.inds]
 exp.entry.t3 <- exp.entry.tot[t3.inds]
-exp.entry.t4 <- exp.entry.tot[t4.inds]
+#exp.entry.t4 <- exp.entry.tot[t4.inds]
 
 n.ctrl <- length(ctrl.inds)
 n.t1 <- length(t1.inds)
 n.t2 <- length(t2.inds)
 n.t3 <- length(t3.inds)
-n.t4 <- length(t4.inds)
+#n.t4 <- length(t4.inds)
 
 ctrl.events <- round_any(rexp(n.ctrl, null.rate), unit_adj)
 t1.events <- round_any(rexp(n.t1, t.rate),unit_adj)
 t2.events <- round_any(rexp(n.t2, t.rate),unit_adj)
 t3.events <- round_any(rexp(n.t3, t.rate),unit_adj)
-t4.events <- round_any(rexp(n.t4, t.rate),unit_adj)
+#t4.events <- round_any(rexp(n.t4, t.rate),unit_adj)
 
 ctrl.tot <- ctrl.events+exp.ctrl.entry
 t1.tot <- t1.events+exp.entry.t1
 t2.tot <- t2.events+exp.entry.t2
 t3.tot <- t3.events+exp.entry.t3
-t4.tot <- t4.events+exp.entry.t4
+#t4.tot <- t4.events+exp.entry.t4
 
 ctrl.block <- length(c(seq(1, breaks[1], 3), seq(breaks[1]+1, breaks[2], 5)))
 
@@ -139,8 +143,8 @@ ctrl.obs2 <- ifelse(ctrl.cens2, ctrl.events[(length(ctrl.tot)-ctrl.block+1):(len
                     t2.time-unif.ctrl.entry[(length(ctrl.tot)-ctrl.block+1):(length(ctrl.tot))])
 t3.cens <- ifelse(t3.tot > t2.time, 0, 1)
 t3.obs <- ifelse(t3.cens, t3.events, t2.time-unif.entry.t3)
-t4.cens <- ifelse(t4.tot > t2.time, 0, 1)
-t4.obs <- ifelse(t4.cens, t4.events, t2.time-unif.entry.t4)
+#t4.cens <- ifelse(t4.tot > t2.time, 0, 1)
+#t4.obs <- ifelse(t4.cens, t4.events, t2.time-unif.entry.t4)
 
 obj1 <- survfit(Surv(t1.obs, t1.cens)~1)
 
