@@ -1,12 +1,17 @@
 library(survival)
 library(survminer)
+library(janitor)
+library(beepr)
 
-nsim <- 1000
+nsim <- 500
 null.hz <- .3
 tx.hz <- 1*null.hz
 nevents <- 524
-boy <- ceiling(nevents*.35)
-boy2 <- ceiling(nevents*.7)
+start2 <- ceiling(nevents*.35)
+ntot <- ceiling(nevents*.7)
+arm_no <- c(2, 6)
+n.arms <- c(5,6,2)
+#number of arms at any given time
 
 #stat <- rep(NA, nsim)
 p.expt_1c <- rep(NA, nsim)
@@ -30,114 +35,169 @@ CI_fast_null_tx_u <- list()
 t_length <- data.frame(arm1=0, arm2=0)
 n_pat <- data.frame(arm1=0, arm2=0)
 
-set.seed(2349)
+surv1T <- list()
+surv5T <- list()
+
+diff1 <- list()
+diff5 <- list()
+time1 <- list()
+time5 <- list()
+
+mdiff1 <- rep(NA, nsim)
+mdiff5 <- rep(NA, nsim)
 
 for (i in 1:nsim) {
   entry <- seq(1/500,6, by=1/500)
-  ctrl.entry <- entry[seq(1,3000, by=5)]
-  tx1.entry <- entry[seq(2,3000,by=5)]
-  ctrl.1 <- rexp(length(ctrl.entry), null.hz)
-  tx.1 <- rexp(length(tx1.entry), tx.hz)
+  ctrl1entry.1 <- entry[seq(1,3000, by=n.arms[1])]
+  tx1entry.1 <- entry[seq(arm_no[1],3000,by=n.arms[1])]
+  ctrl1evs.1 <- rexp(length(ctrl1entry.1), null.hz)
+  tx1evs.1 <- rexp(length(tx1entry.1), tx.hz)
   
-  comp1 <- rbind(cbind(ctrl.1+ctrl.entry,ctrl.1, ctrl.entry, rep(0,length(ctrl.entry))),
-                 cbind(tx.1+tx1.entry,tx.1, tx1.entry, rep(1,length(tx1.entry))))
-  comp1 <- comp1[order(comp1[,1]),]
-  cut <- comp1[boy,1]
-  inds <- which(comp1[,3]>cut)
-  comp1 <- comp1[-inds,]
+  ctrl1time.1 <- ctrl1entry.1+ctrl1evs.1
+  tx1time.1 <- tx1entry.1 + tx1evs.1
   
-  entry2 <- seq(cut,6, by=1/500)
-  ctrl.entry <- entry2[seq(1,length(entry2), by=6)]
-  tx1.entry <- entry2[seq(2,length(entry2),by=6)]
-  tx5.entry <- entry2[seq(6, length(entry2), by=6)]
-  ctrl.5.st <- ctrl.entry[1]
-  tx5.st <- tx5.entry[1]
+  comp1 <- c(ctrl1time.1, tx1time.1)
+  censTime1.1 <- comp1[order(comp1)][start2]
   
-  ctrl.1 <- rexp(length(ctrl.entry), null.hz)
-  tx.1 <- rexp(length(tx1.entry), tx.hz)
-  tx.5 <- rexp(length(tx5.entry), tx.hz)
+  inds1 <- which(ctrl1entry.1<censTime1.1)
+  inds2 <- which(tx1entry.1<censTime1.1)
   
-  comp1 <- rbind(comp1, 
-                 rbind(cbind(ctrl.1+ctrl.entry,ctrl.1, ctrl.entry, rep(0,length(ctrl.entry))),
-                       cbind(tx.1+tx1.entry,tx.1, tx1.entry, rep(1,length(tx1.entry)))))
-  comp1 <- comp1[order(comp1[,1]),]
-  cut <- comp1[boy2,1]
-  inds <- which(comp1[,3]>cut)
-  comp1 <- comp1[-inds,]
-  comp1 <- cbind(comp1, c(rep(1,nevents),rep(0,nrow(comp1)-nevents)))
-  test1 <- ifelse(comp1[1:nrow(comp1),1]>comp1[nevents], comp1[nevents]-comp1[1:nrow(comp1),3], 
-                  comp1[1:nrow(comp1),2])
-  comp1[,2] <- replace(comp1[,2],1:nrow(comp1),test1)
+  ctrl1evs.1 <- ctrl1evs.1[inds1]
+  tx1evs.1 <- tx1evs.1[inds2]
+  ctrl1time.1 <- ctrl1time.1[inds1]
+  tx1time.1 <- tx1time.1[inds2]
+  ctrl1entry.1 <- ctrl1entry.1[inds1]
+  tx1entry.1 <- tx1entry.1[inds2]
   
-  comp5 <- rbind(cbind(ctrl.1+ctrl.entry,ctrl.1, ctrl.entry, rep(0,length(ctrl.entry))),
-                 cbind(tx.5+tx5.entry,tx.5, tx5.entry, rep(1,length(tx5.entry))))
-  comp5 <- comp5[order(comp5[,1]),]
-  inds <- which(comp5[,3]>cut)
-  comp5 <- comp5[-inds,]
+  nu_st <- round_to_fraction(censTime1.1, 500, 3)
   
-  entry3 <- seq(cut,8, by=1/500)
-  ctrl.entry <- entry3[seq(1,length(entry3), by=2)]
-  tx5.entry <- entry3[seq(2, length(entry3), by=2)]
+  entry2 <- seq(nu_st+1/500,6+nu_st, by=1/500)
+  ctrl1entry.2 <- entry2[seq(1,length(entry2), by=n.arms[2])]
+  tx1entry.2 <- entry2[seq(arm_no[1],length(entry2),by=n.arms[2])]
+  ctrl5entry.1 <- entry[seq(1,length(entry), by=n.arms[2])]
+  tx5entry.1 <- entry[seq(arm_no[2], length(entry), by=n.arms[2])]
+  #ctrl.5.st <- ctrl.sh.entry[1]
+  #tx5.st <- tx5entry.1[1]
   
-  ctrl.1 <- rexp(length(ctrl.entry), null.hz)
-  tx.5 <- rexp(length(tx5.entry), tx.hz)
+  ctrl.sh.evs <- rexp(length(ctrl1entry.2), null.hz)
+  tx1evs.2 <- rexp(length(tx1entry.2), tx.hz)
+  tx5evs.1 <- rexp(length(tx5entry.1), tx.hz)
   
-  comp5 <- rbind(comp5, 
-                 rbind(cbind(ctrl.1+ctrl.entry,ctrl.1, ctrl.entry, rep(0,length(ctrl.entry))),
-                       cbind(tx.5+tx5.entry,tx.5, tx5.entry, rep(1,length(tx5.entry)))))
-  comp5 <- comp5[order(comp5[,1]),]
-  cut <- comp5[boy2,1]
-  inds <- which(comp5[,3]>cut)
-  comp5 <- comp5[-inds,]
-  comp5 <- cbind(comp5, c(rep(1,nevents),rep(0,nrow(comp5)-nevents)))
-  comp5[comp5[,4]==0,1] <- comp5[comp5[,4]==0,1]-ctrl.5.st
-  comp5[comp5[,4]==0,3] <- comp5[comp5[,4]==0,3]-ctrl.5.st
-  comp5[comp5[,4]==1,1] <- comp5[comp5[,4]==1,1]-tx5.st
-  comp5[comp5[,4]==1,3] <- comp5[comp5[,4]==1,3]-tx5.st
-  test5 <- ifelse(comp5[1:nrow(comp5),1]>comp5[nevents], comp5[nevents]-comp5[1:nrow(comp5),3], 
-                  comp5[1:nrow(comp5),2])
-  comp5[,2] <- replace(comp5[,2],1:nrow(comp5),test5)
+  ctrl1time.2 <- ctrl1entry.2+ctrl.sh.evs
+  tx1time.2 <- tx1entry.2 + tx1evs.2
+  ctrl5time.1 <- ctrl5entry.1 + ctrl.sh.evs
+  tx5time.1 <- tx5entry.1 + tx5evs.1
   
-  t_length[i,] <- cbind(comp1[nevents], comp5[nevents])
-  n_pat[i, ] <- cbind(nrow(comp1), nrow(comp5))
+  comp1 <- c(ctrl1time.1, tx1time.1, ctrl1time.2, tx1time.2)
+  censTime1.2 <- comp1[order(comp1)][ntot]
   
-  test1c <- summary(coxph(Surv(comp1[,2], comp1[,5])~comp1[,4]))
-  test5c <- summary(coxph(Surv(comp5[,2], comp5[,5])~comp5[,4]))
-  test15 <- summary(coxph(Surv(c(comp1[comp1[,4]==1,2],comp5[comp5[,4]==1,2]),
-                               c(comp1[comp1[,4]==1,5],comp5[comp5[,4]==1,5]))~
-                            c(rep(0,length(comp1[comp1[,4]==1,2])),
-                              rep(1,length(comp5[comp5[,4]==1,2])))))
+  inds1 <- which(ctrl1entry.2<censTime1.2)
+  inds2 <- which(tx1entry.2<censTime1.2)
+  inds3 <- which(tx5entry.1<(censTime1.2-nu_st))
+  
+  ctrl.sh.evs <- ctrl.sh.evs[inds1]
+  tx1evs.2 <- tx1evs.2[inds2]
+  tx5evs.1 <- tx5evs.1[inds3]
+  ctrl1time.2 <- ctrl1time.2[inds1]
+  ctrl5time.1 <- ctrl5time.1[inds1]
+  tx1time.2 <- tx1time.2[inds2]
+  tx5time.1 <- tx5time.1[inds3]
+  ctrl1entry.2 <- ctrl1entry.2[inds1]
+  ctrl5entry.1 <- ctrl5entry.1[inds1]
+  tx1entry.2 <- tx1entry.2[inds2]
+  tx5entry.1 <- tx5entry.1[inds3]
+  
+  ctrl1.evs <- c(ctrl1evs.1, ctrl.sh.evs)
+  tx1.evs <- c(tx1evs.1, tx1evs.2)
+  ctrl1.time <- c(ctrl1time.1, ctrl1time.2)
+  tx1.time <- c(tx1time.1, tx1time.2)
+  ctrl1.entry <- c(ctrl1entry.1, ctrl1entry.2)
+  tx1.entry <- c(tx1entry.1, tx1entry.2)
+  
+  comp1 <- c(ctrl1.time, tx1.time)
+  censTime1 <- comp1[order(comp1)][nevents]
+  
+  c1stat <- ctrl1.time < censTime1
+  t1stat <- tx1.time < censTime1
+  
+  nu_st2 <- round_to_fraction((censTime1.2-nu_st), 500, 3)
+  
+  entry3 <- seq(nu_st2+1/500,8, by=1/500)
+  ctrl5entry.2 <- entry3[seq(1,length(entry3), by=n.arms[3])]
+  tx5entry.2 <- entry3[seq(2, length(entry3), by=n.arms[3])]
+  
+  ctrl5evs.2 <- rexp(length(ctrl5entry.2), null.hz)
+  tx5evs.2 <- rexp(length(tx5entry.2), tx.hz)
+  
+  ctrl5time.2 <- ctrl5entry.2+ctrl5evs.2
+  tx5time.2 <- tx5entry.2 + tx5evs.2
+  
+  comp5 <- c(ctrl5time.1, tx5time.1, ctrl5time.2, tx5time.2)
+  censTime2.2 <- comp5[order(comp5)][ntot]
+  
+  inds1 <- which(ctrl5entry.2<censTime2.2)
+  inds2 <- which(tx5entry.2<censTime2.2)
+  
+  ctrl5evs.2 <- ctrl5evs.2[inds1]
+  tx5evs.2 <- tx5evs.2[inds2]
+  ctrl5time.2 <- ctrl5time.2[inds1]
+  tx5time.2 <- tx5time.2[inds2]
+  ctrl5entry.2 <- ctrl5entry.2[inds1]
+  tx5entry.2 <- tx5entry.2[inds2]
+  
+  ctrl5.evs <- c(ctrl.sh.evs, ctrl5evs.2)
+  tx5.evs <- c(tx5evs.1, tx5evs.2)
+  ctrl5.time <- c(ctrl5time.1, ctrl5time.2)#-ctrl.5.st
+  tx5.time <- c(tx5time.1, tx5time.2)#-tx5.st
+  ctrl5.entry <- c(ctrl5entry.1, ctrl5entry.2)#-nu_st
+  tx5.entry <- c(tx5entry.1, tx5entry.2)#-nu_st
+  
+  comp5 <- c(ctrl5.time, tx5.time)
+  censTime5 <- comp5[order(comp5)][nevents]
+  
+  c5stat <- ctrl5.time < censTime5
+  t5stat <- tx5.time < censTime5
+  
+  evTimesC1 <- ctrl1.evs * c1stat + (censTime1 - ctrl1.entry) * (1 - c1stat)
+  evTimesT1 <- tx1.evs * t1stat + (censTime1 - tx1.entry) * (1 - t1stat)
+  evTimesC5 <- ctrl5.evs * c5stat + (censTime5 - ctrl5.entry) * (1 - c5stat)
+  evTimesT5 <- tx5.evs * t5stat + (censTime5 - tx5.entry) * (1 - t5stat)
+  
+  t_length[i,] <- cbind(censTime1, censTime5)
+  n_pat[i, ] <- cbind(length(comp1), length(comp5))
+  
+  test1c <- summary(coxph(Surv(time = c(evTimesC1,evTimesT1) , event = c(c1stat, t1stat))
+                          ~c(rep(0, length(evTimesC1)), rep(1, length(evTimesT1)))))
+  
+  test5c <- summary(coxph(Surv(time = c(evTimesC5,evTimesT5) , event = c(c5stat, t5stat))~
+                            c(rep(0, length(evTimesC5)), rep(1, length(evTimesT5)))))
+  
+  test15 <- summary(coxph(Surv(time = c(evTimesT1,evTimesT5) , event = c(t1stat, t5stat))~
+                            c(rep(0, length(evTimesT1)), rep(1, length(evTimesT5)))))
   
   #stat[i] <- test$coef[4]
   p.expt_1c[i] <- test1c$coef[5]
   p.expt_5c[i] <- test5c$coef[5]
   p.expt_15[i] <- test15$coef[5]
   
-  obj1 <- survfit(Surv(comp1[comp1[,4]==1,2], comp1[comp1[,4]==1,5])~1)
+  surv1T[[i]] <- survfit(Surv(time = evTimesT1, event = t1stat)~1)
+  surv5T[[i]] <- survfit(Surv(time = evTimesT5, event = t5stat)~1)
   
-  obj2 <- survfit(Surv(comp1[comp1[,4]==0,2], comp1[comp1[,4]==0,5])~1)
-  check <- all.equal(obj2$n,length(obj2$time),length(obj2$lower),length(obj2$upper))
+  diff1[[i]] <- surv1T[[i]]$upper-surv1T[[i]]$lower
+  diff5[[i]] <- surv5T[[i]]$upper-surv5T[[i]]$lower
   
-  obj3 <- survfit(Surv(comp5[comp5[,4]==1,1], comp5[comp5[,4]==1,5])~1)
-  check <- all.equal(obj3$n,length(obj3$time),length(obj3$lower),length(obj3$upper))
+  mdiff1[i] <- max(surv1T[[i]]$upper-surv1T[[i]]$lower)
+  mdiff5[i] <- max(surv5T[[i]]$upper-surv5T[[i]]$lower)
   
-  obj4 <- survfit(Surv(comp5[comp5[,4]==0,1], comp5[comp5[,4]==0,5])~1)
+  time1[[i]] <- round(surv1T[[i]]$time, digits=2)
+  time5[[i]] <- round(surv5T[[i]]$time, digits=2)
   
-  slow_null_ct_t[[i]] <- round(obj2$time, digits=1)
-  slow_null_tx_t[[i]] <- round(obj1$time, digits=1)
-  fast_null_ct_t[[i]] <- round(obj4$time, digits=1)
-  fast_null_tx_t[[i]] <- round(obj3$time, digits=1)
+  CI_slow_null_tx_l[[i]] <- surv1T[[i]]$lower
+  CI_slow_null_tx_u[[i]] <- surv1T[[i]]$upper
+  CI_fast_null_tx_l[[i]] <- surv5T[[i]]$lower
+  CI_fast_null_tx_u[[i]] <- surv5T[[i]]$upper
   
-  CI_slow_null_ct_l[[i]] <- obj2$lower
-  CI_slow_null_ct_u[[i]] <- obj2$upper
-  CI_slow_null_tx_l[[i]] <- obj1$lower
-  CI_slow_null_tx_u[[i]] <- obj1$upper
-  CI_fast_null_ct_l[[i]] <- obj4$lower
-  CI_fast_null_ct_u[[i]] <- obj4$upper
-  CI_fast_null_tx_l[[i]] <- obj3$lower
-  CI_fast_null_tx_u[[i]] <- obj3$upper
-  
-}
+};beep()
 
 mean(p.expt_1c<.05)
 mean(p.expt_5c<.05)
@@ -147,45 +207,82 @@ hist(p.expt_1c)
 hist(p.expt_5c)
 hist(p.expt_15)
 
-t.test(t_length$arm1, t_length$arm2)
-t.test(n_pat$arm1, n_pat$arm2)
+t.test(t_length$arm1, t_length$arm2, paired = T)
+t.test(n_pat$arm1, n_pat$arm2, paired=T)
+t.test(mdiff1, mdiff5, paired = T)
 
-slo_ct_l <- cbind(unlist(slow_null_ct_t),unlist(CI_slow_null_ct_l))
-slo_ct_u <- cbind(unlist(slow_null_ct_t),unlist(CI_slow_null_ct_u))
-fst_ct_l <- cbind(unlist(fast_null_ct_t),unlist(CI_fast_null_ct_l))
-fst_ct_u <- cbind(unlist(fast_null_ct_t),unlist(CI_fast_null_ct_u))
-slo_tx_l <- cbind(unlist(slow_null_tx_t),unlist(CI_slow_null_tx_l))
-slo_tx_u <- cbind(unlist(slow_null_tx_t),unlist(CI_slow_null_tx_u))
-fst_tx_l <- cbind(unlist(fast_null_tx_t),unlist(CI_fast_null_tx_l))
-fst_tx_u <- cbind(unlist(fast_null_tx_t),unlist(CI_fast_null_tx_u))
+ks.test(diff1[[4]], diff5[[4]])
 
-slo_ct_l <- slo_ct_l[complete.cases(slo_ct_l),]
-slo_ct_u <- slo_ct_u[complete.cases(slo_ct_u),]
-fst_ct_l <- fst_ct_l[complete.cases(fst_ct_l),]
-fst_ct_u <- fst_ct_u[complete.cases(fst_ct_u),]
+plot(ecdf(diff1[[18]]))
+lines(ecdf(diff5[[18]]), col=2)
+
+slodiff <- cbind(unlist(diff1), round(unlist(time1), digits=2))
+fastdiff <- cbind(unlist(diff5), round(unlist(time5), digits=2))
+
+slodiff <- slodiff[complete.cases(slodiff),]
+fastdiff <- fastdiff[complete.cases(fastdiff),]
+
+sdind <- unique(slodiff[,2])
+fdind <- unique(fastdiff[,2])
+
+fst_CI <- data.frame()
+slo_CI <- data.frame()
+
+for (i in fdind) {
+  ind <- which(fastdiff[,2]==i)
+  qt_l <- quantile(fastdiff[ind,1], .025)
+  qt_u <- quantile(fastdiff[ind,1], .975)
+  fst_CI <- rbind(fst_CI, data.frame(qt_l,qt_u,i))
+}
+
+for (i in sdind) {
+  ind <- which(slodiff[,2]==i)
+  qt_l <- quantile(slodiff[ind,1], .025)
+  qt_u <- quantile(slodiff[ind,1], .975)
+  slo_CI <- rbind(slo_CI, data.frame(qt_l,qt_u,i))
+}
+
+plot(sort(slo_CI$i), sort(slo_CI$qt_l),type='l', col='red')
+lines(sort(slo_CI$i), sort(slo_CI$qt_u), col='red')
+lines(sort(fst_CI$i), sort(fst_CI$qt_l),type='l', col='blue')
+lines(sort(fst_CI$i), sort(fst_CI$qt_u), col='blue')
+
+# slo_ct_l <- cbind(unlist(slow_null_ct_t),unlist(CI_slow_null_ct_l))
+# slo_ct_u <- cbind(unlist(slow_null_ct_t),unlist(CI_slow_null_ct_u))
+# fst_ct_l <- cbind(unlist(fast_null_ct_t),unlist(CI_fast_null_ct_l))
+# fst_ct_u <- cbind(unlist(fast_null_ct_t),unlist(CI_fast_null_ct_u))
+slo_tx_l <- cbind(unlist(time1),unlist(CI_slow_null_tx_l))
+slo_tx_u <- cbind(unlist(time1),unlist(CI_slow_null_tx_u))
+fst_tx_l <- cbind(unlist(time5),unlist(CI_fast_null_tx_l))
+fst_tx_u <- cbind(unlist(time5),unlist(CI_fast_null_tx_u))
+
+# slo_ct_l <- slo_ct_l[complete.cases(slo_ct_l),]
+# slo_ct_u <- slo_ct_u[complete.cases(slo_ct_u),]
+# fst_ct_l <- fst_ct_l[complete.cases(fst_ct_l),]
+# fst_ct_u <- fst_ct_u[complete.cases(fst_ct_u),]
 slo_tx_l <- slo_tx_l[complete.cases(slo_tx_l),]
 slo_tx_u <- slo_tx_u[complete.cases(slo_tx_u),]
 fst_tx_l <- fst_tx_l[complete.cases(fst_tx_l),]
 fst_tx_u <- fst_tx_u[complete.cases(fst_tx_u),]
 
-fnct <- unique(fst_ct_l[,1])
+#fnct <- unique(fst_ct_l[,1])
 fntt <- unique(fst_tx_l[,1])
-snct <- unique(slo_ct_l[,1])
+# snct <- unique(slo_ct_l[,1])
 sntt <- unique(slo_tx_l[,1])
 
-fst_ct_ci <- data.frame()
+#fst_ct_ci <- data.frame()
 fst_tx_ci <- data.frame()
-slo_ct_ci <- data.frame()
+#slo_ct_ci <- data.frame()
 slo_tx_ci <- data.frame()
 
-for (i in fnct) {
-  ind <- which(fst_ct_l[,1]==i)
-  qt_l_l <- quantile(fst_ct_l[ind,2], .025)
-  qt_l_u <- quantile(fst_ct_l[ind,2], .975)
-  qt_u_l <- quantile(fst_ct_u[ind,2], .025)
-  qt_u_u <- quantile(fst_ct_u[ind,2], .975)
-  fst_ct_ci <- rbind(fst_ct_ci, data.frame(qt_l_l,qt_l_u, qt_u_l,qt_u_u,i))
-}
+# for (i in fnct) {
+#   ind <- which(fst_ct_l[,1]==i)
+#   qt_l_l <- quantile(fst_ct_l[ind,2], .025)
+#   qt_l_u <- quantile(fst_ct_l[ind,2], .975)
+#   qt_u_l <- quantile(fst_ct_u[ind,2], .025)
+#   qt_u_u <- quantile(fst_ct_u[ind,2], .975)
+#   fst_ct_ci <- rbind(fst_ct_ci, data.frame(qt_l_l,qt_l_u, qt_u_l,qt_u_u,i))
+# }
 
 for (i in fntt) {
   ind <- which(fst_tx_l[,1]==i)
@@ -196,15 +293,15 @@ for (i in fntt) {
   fst_tx_ci <- rbind(fst_tx_ci, data.frame(qt_l_l,qt_l_u, qt_u_l,qt_u_u,i))
 }
 
-for (i in snct) {
-  ind <- which(slo_ct_l[,1]==i)
-  qt_l_l <- quantile(slo_ct_l[ind,2], .025)
-  qt_l_u <- quantile(slo_ct_l[ind,2], .975)
-  qt_u_l <- quantile(slo_ct_u[ind,2], .025)
-  qt_u_u <- quantile(slo_ct_u[ind,2], .975)
-  slo_ct_ci <- rbind(slo_ct_ci, data.frame(qt_l_l,qt_l_u, qt_u_l,qt_u_u,i))
-}
-
+# for (i in snct) {
+#   ind <- which(slo_ct_l[,1]==i)
+#   qt_l_l <- quantile(slo_ct_l[ind,2], .025)
+#   qt_l_u <- quantile(slo_ct_l[ind,2], .975)
+#   qt_u_l <- quantile(slo_ct_u[ind,2], .025)
+#   qt_u_u <- quantile(slo_ct_u[ind,2], .975)
+#   slo_ct_ci <- rbind(slo_ct_ci, data.frame(qt_l_l,qt_l_u, qt_u_l,qt_u_u,i))
+# }
+# 
 for (i in sntt) {
   ind <- which(slo_tx_l[,1]==i)
   qt_l_l <- quantile(slo_tx_l[ind,2], .025)
@@ -218,17 +315,16 @@ plot(sort(slo_tx_ci$i), sort(slo_tx_ci$qt_l_l, decreasing=T),type='l', col='red'
 lines(sort(slo_tx_ci$i), sort(slo_tx_ci$qt_l_u, decreasing=T), col='red')
 lines(sort(fst_tx_ci$i), sort(fst_tx_ci$qt_l_l, decreasing=T),type='l', col='blue')
 lines(sort(fst_tx_ci$i), sort(fst_tx_ci$qt_l_u, decreasing=T), col='blue')
-lines(sort(slo_ct_ci$i), sort(slo_ct_ci$qt_l_l, decreasing=T),type='l', col='purple')
-lines(sort(slo_ct_ci$i), sort(slo_ct_ci$qt_l_u, decreasing=T), col='purple')
-lines(sort(fst_ct_ci$i), sort(fst_ct_ci$qt_l_l, decreasing=T),type='l', col='forestgreen')
-lines(sort(fst_ct_ci$i), sort(fst_ct_ci$qt_l_u, decreasing=T), col='forestgreen')
+# lines(sort(slo_ct_ci$i), sort(slo_ct_ci$qt_l_l, decreasing=T),type='l', col='purple')
+# lines(sort(slo_ct_ci$i), sort(slo_ct_ci$qt_l_u, decreasing=T), col='purple')
+# lines(sort(fst_ct_ci$i), sort(fst_ct_ci$qt_l_l, decreasing=T),type='l', col='forestgreen')
+# lines(sort(fst_ct_ci$i), sort(fst_ct_ci$qt_l_u, decreasing=T), col='forestgreen')
 
 lines(sort(fst_tx_ci$i), sort(fst_tx_ci$qt_u_l, decreasing=T), col='blue')
 lines(sort(fst_tx_ci$i), sort(fst_tx_ci$qt_u_u, decreasing=T), col='blue')
 lines(sort(slo_tx_ci$i), sort(slo_tx_ci$qt_u_l, decreasing=T),lty='dashed', col='red')
 lines(sort(slo_tx_ci$i), sort(slo_tx_ci$qt_u_u, decreasing=T),lty='dashed', col='red')
-lines(sort(slo_ct_ci$i), sort(slo_ct_ci$qt_u_l, decreasing=T),lty='dashed', col='purple')
-lines(sort(slo_ct_ci$i), sort(slo_ct_ci$qt_u_u, decreasing=T),lty='dashed', col='purple')
-lines(sort(fst_ct_ci$i), sort(fst_ct_ci$qt_u_l, decreasing=T), col='forestgreen')
-lines(sort(fst_ct_ci$i), sort(fst_ct_ci$qt_u_u, decreasing=T), col='forestgreen')
-
+# lines(sort(slo_ct_ci$i), sort(slo_ct_ci$qt_u_l, decreasing=T),lty='dashed', col='purple')
+# lines(sort(slo_ct_ci$i), sort(slo_ct_ci$qt_u_u, decreasing=T),lty='dashed', col='purple')
+# lines(sort(fst_ct_ci$i), sort(fst_ct_ci$qt_u_l, decreasing=T), col='forestgreen')
+# lines(sort(fst_ct_ci$i), sort(fst_ct_ci$qt_u_u, decreasing=T), col='forestgreen')

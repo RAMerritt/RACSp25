@@ -50,6 +50,9 @@ CI_fast_null_tx_u <- list()
 
 t_length <- data.frame(arm1=0, arm2=0)
 
+mdiff1 <- rep(NA, nsim)
+mdiff5 <- rep(NA, nsim)
+
 surv1T <- list()
 surv5T <- list()
 
@@ -106,6 +109,9 @@ for (i in 1:nsim) {
   diff1[[i]] <- surv1T[[i]]$upper-surv1T[[i]]$lower
   diff5[[i]] <- surv5T[[i]]$upper-surv5T[[i]]$lower
   
+  mdiff1[i] <- max(surv1T[[i]]$upper-surv1T[[i]]$lower)
+  mdiff5[i] <- max(surv5T[[i]]$upper-surv5T[[i]]$lower)
+  
   time1[[i]] <- round(surv1T[[i]]$time, digits=2)
   time5[[i]] <- round(surv5T[[i]]$time, digits=2)
   
@@ -121,6 +127,7 @@ mean(p.expt_5c<.05)
 mean(p.expt_15<.05)
 
 t.test(t_length$arm1, t_length$arm2, paired = T)
+t.test(mdiff1, mdiff5, paired = T)
 
 hist(t_length$arm1)
 hist(t_length$arm2)
@@ -159,10 +166,10 @@ for (i in sdind) {
   slo_CI <- rbind(slo_CI, data.frame(qt_l,qt_u,i))
 }
 
-plot(sort(slo_CI$i), sort(slo_CI$qt_l, decreasing=T),type='l', col='red')
-lines(sort(slo_CI$i), sort(slo_CI$qt_u, decreasing=T), col='red')
-lines(sort(fst_CI$i), sort(fst_CI$qt_l, decreasing=T),type='l', col='blue')
-lines(sort(fst_CI$i), sort(fst_CI$qt_u, decreasing=T), col='blue')
+plot(sort(slo_CI$i), sort(slo_CI$qt_l),type='l', col='red')
+lines(sort(slo_CI$i), sort(slo_CI$qt_u), col='red')
+lines(sort(fst_CI$i), sort(fst_CI$qt_l),type='l', col='blue')
+lines(sort(fst_CI$i), sort(fst_CI$qt_u), col='blue')
 
 # slo_ct_l <- cbind(unlist(slow_null_ct_t),unlist(CI_slow_null_ct_l))
 # slo_ct_u <- cbind(unlist(slow_null_ct_t),unlist(CI_slow_null_ct_u))
